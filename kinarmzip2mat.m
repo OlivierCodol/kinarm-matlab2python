@@ -22,7 +22,7 @@ if ~ischar(filename)
 end
 
 % if input is not a .zip file, it is assumed to be a directory, so this
-% script is called recursively for ech .zip file contained in the directory
+% script is called recursively for each .zip file contained in the directory
 if ~strcmpi(filename(end-3:end), '.zip')
     cd(filename)
     filelist = ls;
@@ -58,19 +58,26 @@ SESSION_DATA.TASK_PROGRAM = data(1).EXPERIMENT.TASK_PROGRAM;
 SESSION_DATA.TASK_PROTOCOL = data(1).EXPERIMENT.TASK_PROTOCOL;
 SESSION_DATA.USE_REPEAT_TRIAL_FLAG = data(1).EXPERIMENT.USE_REPEAT_TRIAL_FLAG;
 SESSION_DATA.REFRESH_RATE = data(1).VIDEO_SETTINGS.REFRESH_RATE;
+OUTPUT{1} = 'SESSION_DATA';
 
+if isfield(data(1), 'LOAD_TABLE')
+    LOAD_TABLE = rmfield(data(1).LOAD_TABLE, {'COLUMN_ORDER', 'USED', 'DESCRIPTIONS'});
+    OUTPUT{numel(OUTPUT)+1} = 'LOAD_TABLE';
+end
 
-LOAD_TABLE = rmfield(data(1).LOAD_TABLE, {'COLUMN_ORDER', 'USED', 'DESCRIPTIONS'});
-
-TARGET_TABLE = rmfield(data(1).TARGET_TABLE,...
-    {'COLUMN_ORDER', 'USED', 'DESCRIPTIONS', 'FRAME_OF_REFERENCE', 'FRAME_OF_REFERENCE_LIST'});
-TARGET_TABLE.Text_String = reshape( TARGET_TABLE.Text_String, [], 1);
+if isfield(data(1), 'LOAD_TABLE')
+    TARGET_TABLE = rmfield(data(1).TARGET_TABLE,...
+        {'COLUMN_ORDER', 'USED', 'DESCRIPTIONS', 'FRAME_OF_REFERENCE', 'FRAME_OF_REFERENCE_LIST'});
+	OUTPUT{numel(OUTPUT)+1} = 'TARGET_TABLE';
+end
 
 BLOCK_TABLE = rmfield(data(1).BLOCK_TABLE, {'USED', 'DESCRIPTIONS'});
 BLOCK_TABLE.TP_LIST = reshape( BLOCK_TABLE.TP_LIST, [], 1);
 BLOCK_TABLE.CATCH_TP_LIST = reshape( BLOCK_TABLE.CATCH_TP_LIST, [], 1);
+OUTPUT{numel(OUTPUT)+1} = 'BLOCK_TABLE';
 
 TP_TABLE = rmfield(data(1).TP_TABLE, {'COLUMN_ORDER', 'USED', 'DESCRIPTIONS'});
+OUTPUT{numel(OUTPUT)+1} = 'TP_TABLE';
 
 
 
@@ -169,8 +176,7 @@ end
 % SAVE DATA INTO A (TEMPORARY) .MAT FILE
 %=============================
 outputname = regexprep(data_in.file_name, '.zip', '.mat');
-save(outputname,'TIME_SERIES_DATA', 'TRIAL_DATA', 'SESSION_DATA',...
-    'LOAD_TABLE', 'TARGET_TABLE', 'BLOCK_TABLE', 'TP_TABLE')
+save(outputname,'TIME_SERIES_DATA', 'TRIAL_DATA', 'SESSION_DATA', OUTPUT{:})
 
 
 end
