@@ -86,7 +86,6 @@ OUTPUT{numel(OUTPUT)+1} = 'TP_TABLE';
 %=============================
 
 ntrials = numel(data);
-block_lims = sortBlockTable(data(1));
 
 nt = 0;
 for t = 1:ntrials; nt = nt + data(t).HAND.FRAMES; end
@@ -94,52 +93,49 @@ for t = 1:ntrials; nt = nt + data(t).HAND.FRAMES; end
 
 
 TRIAL_DATA = struct();
-TRIAL_DATA.block = uint16(zeros(ntrials,1));
 TRIAL_DATA.trial = uint16((1:ntrials)');
 TRIAL_DATA.n_timestamps = uint16(zeros(ntrials,1));
 TRIAL_DATA.time = cell(ntrials,1);
 TRIAL_DATA.is_error = uint8(zeros(ntrials,1));
 TRIAL_DATA.tp_row = uint16(zeros(ntrials,1));
 
+if isfield(data(1), 'EVENTS')
+    eventsExist = true;
+    [~, tags] = sortEvents(data(1));
 
-[~, tags] = sortEvents(data(t));
+    headers = [...
+        cellfun(@(x) cat(2,'EVENT_TIMESTAMP_',x), tags, 'UniformOutput', 0);...
+        cellfun(@(x) cat(2,'EVENT_TIME_SEC_',x), tags, 'UniformOutput', 0);...
+        cellfun(@(x) cat(2,'EVENT_ORDER_',x), tags, 'UniformOutput', 0)];
+    for h = 1:numel(headers); TRIAL_DATA.(headers{h}) = nan(ntrials,1); end
+else
+    eventsExist = false;
+end
 
-headers = [...
-    cellfun(@(x) cat(2,'EVENT_TIMESTAMP_',x), tags, 'UniformOutput', 0);...
-    cellfun(@(x) cat(2,'EVENT_TIME_SEC_',x), tags, 'UniformOutput', 0);...
-    cellfun(@(x) cat(2,'EVENT_ORDER_',x), tags, 'UniformOutput', 0)];
-for h = 1:numel(headers); TRIAL_DATA.(headers{h}) = nan(ntrials,1); end
-
-n_error = 0;
 row_i = 1;
 
 for t = 1:ntrials
-    is_error = data(t).TRIAL.IS_ERROR==1; % error trials are dumped
-    n_error = n_error + is_error;         % count error trials
     nt = data(t).HAND.FRAMES;
     
     row_j = row_i + nt - 1;
     timestamps(row_i:row_j) = 1:nt;
     trial(row_i:row_j) = repmat(t, nt, 1);
 
-    TRIAL_DATA.block(t) = uint16( sum((t-n_error) > cumsum(block_lims))+1 );
     TRIAL_DATA.n_timestamps(t) = uint16(nt);
     TRIAL_DATA.time{t} = data(t).TRIAL.TIME(1:8);
     TRIAL_DATA.is_error(t) = uint8(data(t).TRIAL.IS_ERROR);
     TRIAL_DATA.tp_row(t) = uint16(data(t).TRIAL.TP);
     
-    events = reshape( sortEvents(data(t)), [], 1);
-    for h = 1:numel(headers)
-        TRIAL_DATA.(headers{h})(t) = events(h);
+    if eventsExist
+        events = reshape( sortEvents(data(t)), [], 1);
+        for h = 1:numel(headers)
+            TRIAL_DATA.(headers{h})(t) = events(h);
+        end
     end
-
     
     row_i = row_j + 1;
 end
 
-if n_error + ntrials ~= sum(block_lims)
-    warning('Custom warning: mismatch in count of total trials.')
-end
 
 
 
@@ -155,6 +151,7 @@ for f = 1:nfields
     row_i = 1;
     fname = fnames{f};
     
+    % check if time series
     if strcmpi(class(data(1).(fname)), 'double') % &&...
             % ~startsWith(fname, 'Left_') &&...
             % ~startsWith(fname, 'Gaze_')
@@ -213,98 +210,6 @@ while k <= numel(classtypes)
 end
 
 end
-
-
-
-function blim = sortBlockTable( data )
-% Get how many trials in each block
-
-trials_list         = data.BLOCK_TABLE.TP_LIST;         % trials for this block
-trials_rep          = data.BLOCK_TABLE.LIST_REPS;       % trial list repetitions
-catch_trials_list   = data.BLOCK_TABLE.CATCH_TP_LIST;   % catch trials for this block
-blocks_rep          = data.BLOCK_TABLE.BLOCK_REPS;      % block repetitions
-
-n_blocks = numel(trials_rep);            % how many blocks
-
-if isempty(trials_list);       trials_list       = repmat({''}, n_blocks, 1); end
-if isempty(catch_trials_list); catch_trials_list = repmat({''}, n_blocks, 1); end
-
-trial_count = zeros(n_blocks,1);         % count how many normal trials in trial list (for each block)
-catch_count = zeros(n_blocks,1);         % count how many catch  trials in catch list (for each block)
-instr_trial_count = zeros(n_blocks,1);   % count how many instr. trials in trial list (for each block)
-instr_catch_count = zeros(n_blocks,1);   % count how many instr. trials in catch list (for each block)
-
-
-n_rows = numel(data.TP_TABLE.Load);      % how many rows (one row per trial type)
-
-fnames = fieldnames(data.TP_TABLE);      % columns in TP table
-those_cols = find(  contains(fnames,'end','IgnoreCase',true) &...       % columns indicating an end target
-                    contains(fnames,'target','IgnoreCase',true)     );
-
-instruct_targ = ~cellfun(@isempty, data.TARGET_TABLE.Text_String);      % targets containing instructions (ie contain text)
-instruc_trials = nan( n_rows , numel(those_cols) );                     % allocate memory
-
-for c = 1 : numel(those_cols)                                       % for each end-target column
-    trial_targets = data.TP_TABLE.(fnames{those_cols (c)});             % target used in each row
-    trial_targets(trial_targets==0) = 1;                                % cannot accept 0s as indices below
-    instruc_trials(:,c) = instruct_targ( trial_targets );               % is that target an instruction target?
-end
-
-
-for b = 1:n_blocks
-    tprows_trial = sortOneTableLine( trials_list{b}       , n_rows );
-    tprows_catch = sortOneTableLine( catch_trials_list{b} , n_rows );
-
-    trial_count(b) = sum( tprows_trial );
-    catch_count(b) = sum( tprows_catch );
-
-    instr_trial_count(b) = max( instruc_trials' * tprows_trial ); % find any instruction target among end-target columns
-    instr_catch_count(b) = max( instruc_trials' * tprows_catch );
-end
-
-
-
-% how many instruction trials overall for each block
-n_instruct = ((instr_trial_count .* trials_rep) + instr_catch_count) .* blocks_rep;
-% how many normal trials overall for each block
-blim = ((trial_count .* trials_rep) + catch_count) .* blocks_rep - n_instruct;
-% no trial in this block (or no non-instruction trials)
-blim(blim==0) = [];
-
-
-end
-
-
-
-
-
-function tprows = sortOneTableLine( thistableline , n_rows)
-
-nchara = numel(thistableline);
-if nchara==0; nchara=[]; end
-commas = strfind(thistableline,',');
-
-chunk_start = 1;
-tprows = zeros( n_rows , 1 ); % max number of possible values
-
-
-for chunk_end = [commas-1, nchara]
-    this_chunk = thistableline( chunk_start : chunk_end );
-    chunk_start = chunk_end + 2; % for next iteration
-    
-    dash = strfind(this_chunk, '-');
-    if isempty(dash)
-        tprow = str2double(this_chunk);
-        tprows(tprow) = tprows(tprow) + 1;
-    else
-        x = str2double(this_chunk(1:dash-1));
-        y = str2double(this_chunk(dash+1:end));
-        tprows(x:y) = tprows(x:y) + 1;
-    end
-end
-
-end
-
 
 
 function [events, event_names] = sortEvents(data)
