@@ -107,6 +107,7 @@ if isfield(data(1), 'EVENTS')
         cellfun(@(x) cat(2,'EVENT_TIMESTAMP_',x), tags, 'UniformOutput', 0);...
         cellfun(@(x) cat(2,'EVENT_TIME_SEC_',x), tags, 'UniformOutput', 0);...
         cellfun(@(x) cat(2,'EVENT_ORDER_',x), tags, 'UniformOutput', 0)];
+    headers = cellfun(@(x) matlab.lang.makeValidName(x), headers, 'UniformOutput', 0);
     for h = 1:numel(headers); TRIAL_DATA.(headers{h}) = nan(ntrials,1); end
 else
     eventsExist = false;
