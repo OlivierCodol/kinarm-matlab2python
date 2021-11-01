@@ -9,7 +9,8 @@ To install feather, use ```pip install pyarrow```.
 run the ```kinarmzip2mat.m``` file in matab, with as a single argument:
 - the full path of the file to convert, or
 - the full path of the directory containing the file(s) to convert (supports batch conversion).
-This will create a ```.mat``` file.
+
+This script will create a ```.mat``` file for each ```.zip``` file passed as input.
 
 Then, in python, run ```mat2bin.py``` or ```mat2feather.py``` to create the set of binary files from the ```.mat```
 file.
