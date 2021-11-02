@@ -3,7 +3,21 @@
 This is a small set of scripts to convert the .zip file outputs to binary format files. Currently the data is put into pandas dataframes, and saved using the feather package.
 There is a commented out line to save files using pickle insted of feather, since pickle is pre-included in most python environments.
 
-To install feather, use ```pip install pyarrow```.
+
+## Requirements
+The matlab functions from the KINARM platform are necessary to run the matlab script ```kinarmzip2mat.m```. You will 
+need to have a valid account to access them. See *Kinarm Analysis Scripts* under the *MATLAB & Compilers* sections at 
+this URL address: https://kinarm.com/support/software-downloads/ 
+
+These python packages are necessary to run the python scripts:
+- ```os```
+- ```subprocess```
+- ```pickle```
+- ```pandas```
+- ```scipy``` for the ```loadmat``` function.
+- ```argparse``` for the ```ArgumentParser``` function.
+- ```pyarrow``` if you are using the ```feather``` file format. Install with ```pip install pyarrow```.
+ 
 
 ## How to use
 run the ```kinarmzip2mat.m``` file in matab, with as a single argument:
