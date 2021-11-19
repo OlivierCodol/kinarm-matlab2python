@@ -10,12 +10,8 @@ need to have a valid account to access them. See *Kinarm Analysis Scripts* under
 this URL address: https://kinarm.com/support/software-downloads/ 
 
 These python packages are necessary to run the python scripts:
-- ```os```
-- ```subprocess```
-- ```pickle```
 - ```pandas```
 - ```scipy``` for the ```loadmat``` function.
-- ```argparse``` for the ```ArgumentParser``` function.
 - ```pyarrow``` if you are using the ```feather``` file format. Install with ```pip install pyarrow```.
  
 
