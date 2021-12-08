@@ -5,7 +5,6 @@ import pandas as pd
 from scipy.io import loadmat
 from argparse import ArgumentParser
 
-
 # -------------------------------
 # Sort out arguments
 # -------------------------------
@@ -48,7 +47,7 @@ SESSION_DATA = {**TMP, **TABLES}
 # Sort out directory paths and output file names
 # -------------------------------
 rawfilename = os.path.basename(filename)[:-4]  # remove .mat extension
-dest = os.path.dirname(filename) + os.altsep + rawfilename + os.altsep
+dest = os.path.join(os.path.dirname(filename), rawfilename) + os.path.sep
 if not os.path.exists(dest):
     os.mkdir(dest)
 
@@ -61,3 +60,4 @@ pickle.dump({"SESSION_DATA": SESSION_DATA, "TRIAL_DATA": dataframes_dict["TRIAL_
 file_id.close()
 
 dataframes_dict["TIME_SERIES_DATA"].to_feather(dest + rawfilename + '-TIME_SERIES_DATA.feather', compression='zstd')
+
