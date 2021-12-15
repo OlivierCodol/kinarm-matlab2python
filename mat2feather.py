@@ -32,7 +32,7 @@ MAT.pop("__globals__")
 dataframes_dict = {k: pd.DataFrame(mat2dict(MAT, k)) for k in MAT.keys()}
 
 rawfilename = os.path.basename(filename)[:-4]  # remove .mat extension
-dest = os.path.dirname(filename) + os.altsep + rawfilename + os.altsep
+dest = os.path.join(os.path.dirname(filename), rawfilename) + os.path.sep
 if not os.path.exists(dest):
     os.mkdir(dest)
 
