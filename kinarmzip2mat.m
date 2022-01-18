@@ -88,7 +88,7 @@ OUTPUT{numel(OUTPUT)+1} = 'TP_TABLE';
 ntrials = numel(data);
 
 nt = 0;
-for t = 1:ntrials; nt = nt + data(t).HAND.FRAMES; end
+for t = 1:ntrials; nt = nt + get_frame_count(data(t).HAND); end
 [timestamps, trial, values] = deal(nan(nt, 1));
 
 
@@ -116,7 +116,7 @@ end
 row_i = 1;
 
 for t = 1:ntrials
-    nt = data(t).HAND.FRAMES;
+    nt = get_frame_count(data(t).HAND);
     
     row_j = row_i + nt - 1;
     timestamps(row_i:row_j) = 1:nt;
@@ -158,7 +158,7 @@ for f = 1:nfields
             % ~startsWith(fname, 'Gaze_')
         
         for t = 1:ntrials
-            nt = data(t).HAND.FRAMES;
+            nt = get_frame_count(data(t).HAND);
             row_j = row_i + nt - 1;
             values(row_i:row_j) = data(t).(fname);
             row_i = row_j + 1;
@@ -236,6 +236,14 @@ end
 end
 
 
+function frame_count = get_frame_count(S)
+if isfield(S, 'LONG_FRAMES')
+    frame_field = 'LONG_FRAMES';
+else
+    frame_field = 'FRAMES';
+end
+frame_count = S.(frame_field);
+end
 
 
 
