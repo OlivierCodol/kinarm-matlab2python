@@ -60,4 +60,3 @@ pickle.dump({"SESSION_DATA": SESSION_DATA, "TRIAL_DATA": dataframes_dict["TRIAL_
 file_id.close()
 
 dataframes_dict["TIME_SERIES_DATA"].to_feather(dest + rawfilename + '-TIME_SERIES_DATA.feather', compression='zstd')
-
