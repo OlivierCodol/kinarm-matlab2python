@@ -21,19 +21,30 @@ if ~ischar(filename)
     error('input must be a string or char array indicating the full path of a file or directory.')
 end
 
-% if input is not a .zip file, it is assumed to be a directory, so this
-% script is called recursively for each .zip file contained in the directory
-if ~strcmpi(filename(end-3:end), '.zip')
+% if input is not a .zip or .kinarm file, it is assumed to be a directory,
+% so this script is called recursively for each .zip or .kinarm file 
+% contained in the directory
+is_zip = strcmpi(filename(end-3:end), '.zip');
+is_kin = strcmpi(filename(end-6:end), '.kinarm');
+is_dir = ~(is_zip | is_kin);
+
+if is_dir
     cd(filename)
     filelist = ls;
     filelist = mat2cell(filelist, ones(size(filelist,1),1), size(filelist,2));
-    zips = cellfun(@(x) contains(x, '.zip'), filelist);
-    filelist = cellfun(@(x) regexprep(x, ' ', ''), filelist(zips), 'UniformOutput', false);
+
+    ix1 = cellfun(@(x) contains(x, '.zip'), filelist);
+    ix2 = cellfun(@(x) contains(x, '.kinarm'), filelist);
+    ix = ix1 | ix2;
+    
+    filelist = cellfun(@(x) regexprep(x, ' ', ''), filelist(ix), 'UniformOutput', false);
     nfiles = numel(filelist);
     for file = 1:nfiles-1
         kinarmzip2mat(filelist{file})
     end
     filename = filelist{end};
+    is_zip = strcmpi(filename(end-3:end), '.zip');
+    is_kin = strcmpi(filename(end-6:end), '.kinarm');
 end
 
 
@@ -88,7 +99,7 @@ OUTPUT{numel(OUTPUT)+1} = 'TP_TABLE';
 ntrials = numel(data);
 
 nt = 0;
-for t = 1:ntrials; nt = nt + get_frame_count(data(t).HAND); end
+for t = 1:ntrials; nt = nt + get_frame_count(data(t)); end
 [timestamps, trial, values] = deal(nan(nt, 1));
 
 
@@ -116,7 +127,7 @@ end
 row_i = 1;
 
 for t = 1:ntrials
-    nt = get_frame_count(data(t).HAND);
+    nt = get_frame_count(data(t));
     
     row_j = row_i + nt - 1;
     timestamps(row_i:row_j) = 1:nt;
@@ -158,7 +169,7 @@ for f = 1:nfields
             % ~startsWith(fname, 'Gaze_')
         
         for t = 1:ntrials
-            nt = get_frame_count(data(t).HAND);
+            nt = get_frame_count(data(t));
             row_j = row_i + nt - 1;
             values(row_i:row_j) = data(t).(fname);
             row_i = row_j + 1;
@@ -173,7 +184,11 @@ end
 %=============================
 % SAVE DATA INTO A (TEMPORARY) .MAT FILE
 %=============================
-outputname = regexprep(data_in.file_name, '.zip', '.mat');
+if is_zip
+    outputname = regexprep(data_in.file_name, '.zip', '.mat');
+elseif is_kin
+    outputname = regexprep(data_in.file_name, '.kinarm', '.mat');
+end
 save(outputname,'TIME_SERIES_DATA', 'TRIAL_DATA', 'SESSION_DATA', OUTPUT{:})
 
 
@@ -237,12 +252,27 @@ end
 
 
 function frame_count = get_frame_count(S)
-if isfield(S, 'LONG_FRAMES')
+if isfield(S.HAND, 'LONG_FRAMES')
     frame_field = 'LONG_FRAMES';
 else
     frame_field = 'FRAMES';
 end
-frame_count = S.(frame_field);
+frame_count = S.HAND.(frame_field);
+% in some versions of dexterit-e, the HAND structure does not hold the 
+% number of frames recorded in the trial.
+if frame_count <= 0
+    fnames = fieldnames(S);
+    found = false;
+    while ~found
+        for f = 1:numel(S)
+            fname = fnames{f};
+            if strcmpi(class(S.(fname)), 'double')
+                frame_count = numel(S.(fname));
+                found = true;
+            end
+        end
+    end
+end
 end
 
 
