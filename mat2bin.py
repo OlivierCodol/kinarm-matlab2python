@@ -36,7 +36,19 @@ MAT.pop("__header__")
 MAT.pop("__version__")
 MAT.pop("__globals__")
 
-dataframes_dict = {k: pd.DataFrame(mat2dict(MAT, k)) for k in MAT.keys()}
+dataframes_dict = {}
+for k in MAT.keys():
+    temp_dict = mat2dict(MAT, k)
+
+    # Find the maximum size among non-empty arrays
+    max_size = max(len(arr) for arr in temp_dict.values() if len(arr) > 0)
+
+    # Replace empty arrays with arrays of the same size
+    for key, value in temp_dict.items():
+        if len(value) == 0:
+            temp_dict[key] = [None] * max_size
+
+    dataframes_dict[k] = pd.DataFrame(temp_dict)
 
 TMP = dataframes_dict["SESSION_DATA"].to_dict('records')[0]
 TABLES = {df_name: df for df_name, df in dataframes_dict.items() if df_name.endswith("_TABLE")}
