@@ -231,7 +231,16 @@ end
 function [events, event_names] = sortEvents(data)
 
 samplerate = data.ANALOG.RATE;
-occured_events = cellfun(@(x) deblank(x'), data.EVENTS.LABELS ,'uniformoutput',false)';% Remove whitespaces
+
+% check the dimensions of the labels - need to transpose the labels if they
+% are column arrays
+[row, col] = size(data(1).EVENTS.LABELS{1});
+if row > 1 & col == 1
+        occured_events = cellfun(@(x) deblank(x'), data.EVENTS.LABELS ,'uniformoutput',false)';% Remove whitespaces
+else
+        occured_events = cellfun(@(x) deblank(x), data.EVENTS.LABELS ,'uniformoutput',false)';% Remove whitespaces
+end
+
 event_names = data.EVENT_DEFINITIONS.LABELS';% Get all the possible events
 n_event = length(event_names);
 events = nan(n_event,3);
